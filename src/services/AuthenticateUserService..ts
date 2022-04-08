@@ -1,5 +1,7 @@
 import "dotenv/config";
 import axios from "axios";
+import {prismaClient} from '../prisma';
+import { sign } from 'jsonwebtoken'
 
 /**
  * Mapeamento das Regras de negocio
@@ -47,6 +49,27 @@ class AuthenticateUserService {
                 authorization: `Bearer ${accessTokenResponse.access_token}`
             }
         });
+
+        const {id, login, avatar_url, name} = response.data;
+
+        //Verifica se já existe o usuário no BD
+        let user = await prismaClient.user.findFirst({
+            where: {
+                github_id: id
+            }
+        });
+
+        // Se usuário não existir ele cria o usuário no BD
+        if(!user){
+           user = await prismaClient.user.create({
+                data: {
+                    github_id: id,
+                    avatar_url,
+                    login,
+                    name
+                }
+            });
+        }
 
         return response.data;
     }
